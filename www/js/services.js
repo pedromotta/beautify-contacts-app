@@ -10,7 +10,23 @@
 
   function contactsService($q, $cordovaContacts) {
     var isMobile = ionic.Platform.isWebView();
-    var cachedContacts = !isMobile ? [{id:'23', displayName:'teste', phoneNumbers: [{value: '(031) 99744-5443'},{value: '+61 420 287 998'}]}] : [];
+    var cachedContacts = !isMobile ? [{
+      id: '23',
+      displayName: 'teste',
+      phoneNumbers: [{
+        value: '(031) 99744-5443'
+      }, {
+        value: '+61 420 287 998'
+      }, {
+        value: '+5531997243554'
+      }, {
+        value: '31997243554'
+      }, {
+        value: '031999787121'
+      }, {
+        value: '999787121'
+      }]
+    }] : [];
     var loaded = !isMobile;
     var service = {
       getAll: getAll,
@@ -35,7 +51,7 @@
           cachedContacts = contacts.filter(function(elem) {
             return elem.phoneNumbers;
           });
-          console.log('cache: '+ cachedContacts.length);
+          console.log('cache: ' + cachedContacts.length);
           deferred.resolve(cachedContacts);
         }, deferred.reject);
       } else {
@@ -76,20 +92,54 @@
 
     return services;
 
-    function format(phoneNumber, region) {
-      region = region || 'BR';
+    function formatPhoneNumber(phoneNumber, prefix) {
+      var formattedPhoneNumber = '';
+      var sPhoneNumber = phoneNumber.replace(/[^0-9+]/g, '');
+      var isInternational = isInternationPhone(sPhoneNumber);
+
+      if (!isInternational) {
+        if (sPhoneNumber.length === 8 || sPhoneNumber.length === 9) {
+          sPhoneNumber = '31'.concat(sPhoneNumber);
+        }
+      }
+
+      formattedPhoneNumber = sPhoneNumber;
+      return formattedPhoneNumber;
+    }
+
+    function isInternationPhone(phoneNumber) {
+      return phoneNumber.startsWith('+') &&
+             !phoneNumber.startsWith('+55');
+    }
+
+    function isValidPhoneNumber(phoneNumber, region) {
+      var international = phoneNumber.startsWith('+');
       var phoneObject = instanceUtil.parseAndKeepRawInput(phoneNumber, region);
 
-      var numberFormat = instanceUtil.isValidNumberForRegion(phoneObject, region) ?
-                          libphonenumber.PhoneNumberFormat.NATIONAL :
-                          libphonenumber.PhoneNumberFormat.E164;
+      if (international) {
+        return instanceUtil.isValidNumber(phoneObject);
+      } else {
+        return instanceUtil.isValidNumberForRegion(phoneObject, region);
+      }
+    }
 
+    function format(phoneNumber, region) {
+      region = region || 'BR';
+      var newPhoneNumber = formatPhoneNumber(phoneNumber);
+      var isInternational = isInternationPhone(newPhoneNumber);
+      var isValid = isValidPhoneNumber(newPhoneNumber, region);
       var formattedPhone = '';
 
-      if (numberFormat === libphonenumber.PhoneNumberFormat.NATIONAL) {
-        formattedPhone = phoneObject.getNationalNumber();
+      if (!isValid) {
+        return phoneNumber;
       } else {
-        formattedPhone = instanceUtil.format(phoneObject, numberFormat);
+        var phoneObject = instanceUtil.parseAndKeepRawInput(newPhoneNumber, region);
+
+        if (!isInternational) {
+          formattedPhone = phoneObject.getNationalNumber();
+        } else {
+          formattedPhone = instanceUtil.format(phoneObject, libphonenumber.PhoneNumberFormat.E164);
+        }
       }
 
       return formattedPhone;
