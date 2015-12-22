@@ -1,28 +1,78 @@
-angular.module('starter.controllers', [])
+(function() {
+  'use strict';
 
-.controller('DashCtrl', function($scope) {})
+  angular.module('app.controllers', [])
+    .controller('DashController', DashController)
+    .controller('ContactsController', ContactsController)
+    .controller('ContactDetailController', ContactDetailController)
+    .controller('ConfigsController', ConfigsController);
 
-.controller('ChatsCtrl', function($scope, Chats) {
-  // With the new view caching in Ionic, Controllers are only called
-  // when they are recreated or on app start, instead of every page change.
-  // To listen for when this page is active (for example, to refresh data),
-  // listen for the $ionicView.enter event:
-  //
-  //$scope.$on('$ionicView.enter', function(e) {
-  //});
+  DashController.$inject = ['contactsService', '$ionicLoading'];
+  ContactsController.$inject = ['contactsService'];
+  ContactDetailController.$inject = ['$stateParams', 'contactsService', 'libPhoneNumberService'];
 
-  $scope.chats = Chats.all();
-  $scope.remove = function(chat) {
-    Chats.remove(chat);
-  };
-})
+  function logger(scope, text) {
+    scope.logs = scope.log || '';
+    console.log(text);
+    scope.logs += '</br> ' + text;
+  }
 
-.controller('ChatDetailCtrl', function($scope, $stateParams, Chats) {
-  $scope.chat = Chats.get($stateParams.chatId);
-})
+  function DashController(contactsService, $ionicLoading) {
+    var vm = this;
 
-.controller('AccountCtrl', function($scope) {
-  $scope.settings = {
-    enableFriends: true
-  };
-});
+    $ionicLoading.show({
+      template: 'Loading...'
+    });
+
+    $ionicLoading.hide();
+    logger(vm, 'Buscando contatos...' + !!navigator.contacts);
+    contactsService.getAll().then(function(contacts) {
+      vm.contacts = contacts || [];
+      //logger(vm, 'Contatos: ' + JSON.stringify(contacts));
+    }, function(err) {
+      logger(vm, 'Erro ao buscar contatos: ' + err);
+    });
+  }
+
+  function ContactsController(contactsService) {
+    var vm = this;
+    // With the new view caching in Ionic, Controllers are only called
+    // when they are recreated or on app start, instead of every page change.
+    // To listen for when this page is active (for example, to refresh data),
+    // listen for the $ionicView.enter event:
+    //
+    //$scope.$on('$ionicView.enter', function(e) {
+    //});
+    contactsService.getAll()
+      .then(function(contacts) {
+        vm.contacts = contacts;
+      });
+
+    // $scope.remove = function(chat) {
+    //   Chats.remove(chat);
+    // };
+  }
+
+  function ContactDetailController($stateParams, contactsService, libPhoneNumberService) {
+    var vm = this;
+
+    vm.format = function(phone) {
+      return libPhoneNumberService.format(phone, 'BR');
+    };
+
+    var id = $stateParams.contactId;
+    contactsService.getById(id)
+      .then(function(data) {
+        console.log(JSON.stringify(data));
+        vm.contact = data;
+      });
+  }
+
+  function ConfigsController() {
+    var vm = this;
+    vm.settings = {
+      enableFriends: true
+    };
+  }
+
+})();

@@ -3,5 +3,9 @@
   "private": "true",
   "devDependencies": {
     "ionic": "driftyco/ionic-bower#1.2.1"
+  },
+  "dependencies": {
+    "ngCordova": "~0.1.23-alpha",
+    "google-libphonenumber": "~1.0.10"
   }
 }

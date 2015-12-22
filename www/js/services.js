@@ -1,50 +1,99 @@
-angular.module('starter.services', [])
+(function() {
+  'use strict';
 
-.factory('Chats', function() {
-  // Might use a resource here that returns a JSON array
+  angular
+    .module('app.services', [])
+    .factory('contactsService', contactsService)
+    .factory('libPhoneNumberService', libPhoneNumberService);
 
-  // Some fake testing data
-  var chats = [{
-    id: 0,
-    name: 'Ben Sparrow',
-    lastText: 'You on your way?',
-    face: 'img/ben.png'
-  }, {
-    id: 1,
-    name: 'Max Lynx',
-    lastText: 'Hey, it\'s me',
-    face: 'img/max.png'
-  }, {
-    id: 2,
-    name: 'Adam Bradleyson',
-    lastText: 'I should buy a boat',
-    face: 'img/adam.jpg'
-  }, {
-    id: 3,
-    name: 'Perry Governor',
-    lastText: 'Look at my mukluks!',
-    face: 'img/perry.png'
-  }, {
-    id: 4,
-    name: 'Mike Harrington',
-    lastText: 'This is wicked good ice cream.',
-    face: 'img/mike.png'
-  }];
+  contactsService.$inject = ['$q', '$cordovaContacts'];
 
-  return {
-    all: function() {
-      return chats;
-    },
-    remove: function(chat) {
-      chats.splice(chats.indexOf(chat), 1);
-    },
-    get: function(chatId) {
-      for (var i = 0; i < chats.length; i++) {
-        if (chats[i].id === parseInt(chatId)) {
-          return chats[i];
-        }
+  function contactsService($q, $cordovaContacts) {
+    var isMobile = ionic.Platform.isWebView();
+    var cachedContacts = !isMobile ? [{id:'23', displayName:'teste', phoneNumbers: [{value: '(031) 99744-5443'},{value: '+61 420 287 998'}]}] : [];
+    var loaded = !isMobile;
+    var service = {
+      getAll: getAll,
+      getById: getById
+    };
+
+    getContacts();
+
+    return service;
+
+    function getContacts() {
+      var deferred = $q.defer();
+
+      var options = {};
+      options.find = '';
+      options.multiple = true;
+      options.hasPhoneNumber = true;
+
+      if (!loaded) {
+        $cordovaContacts.find(options).then(function(contacts) {
+          loaded = true;
+          cachedContacts = contacts.filter(function(elem) {
+            return elem.phoneNumbers;
+          });
+          console.log('cache: '+ cachedContacts.length);
+          deferred.resolve(cachedContacts);
+        }, deferred.reject);
+      } else {
+        deferred.resolve(cachedContacts);
       }
-      return null;
+
+      return deferred.promise;
     }
-  };
-});
+
+    function getAll() {
+      var deferred = $q.defer();
+
+      getContacts().then(deferred.resolve, deferred.reject);
+
+      return deferred.promise;
+    }
+
+    function getById(id) {
+      var deferred = $q.defer();
+
+      getContacts().then(function(contacts) {
+        var contact = contacts.find(function(elem) {
+          return elem.id === id;
+        });
+        deferred.resolve(contact);
+      }, deferred.reject);
+
+      return deferred.promise;
+    }
+  }
+
+  function libPhoneNumberService() {
+    var instanceUtil = libphonenumber.PhoneNumberUtil.getInstance();
+
+    var services = {
+      format: format
+    };
+
+    return services;
+
+    function format(phoneNumber, region) {
+      region = region || 'BR';
+      var phoneObject = instanceUtil.parseAndKeepRawInput(phoneNumber, region);
+
+      var numberFormat = instanceUtil.isValidNumberForRegion(phoneObject, region) ?
+                          libphonenumber.PhoneNumberFormat.NATIONAL :
+                          libphonenumber.PhoneNumberFormat.E164;
+
+      var formattedPhone = '';
+
+      if (numberFormat === libphonenumber.PhoneNumberFormat.NATIONAL) {
+        formattedPhone = phoneObject.getNationalNumber();
+      } else {
+        formattedPhone = instanceUtil.format(phoneObject, numberFormat);
+      }
+
+      return formattedPhone;
+    }
+  }
+
+})();

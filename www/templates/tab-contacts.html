@@ -1,0 +1,11 @@
+<ion-view view-title="Contacts">
+  <ion-content>
+    <ion-list>
+      <ion-item class="item-remove-animate item-avatar item-icon-right" ng-repeat="contact in vm.contacts | orderBy:'displayName'" type="item-text-wrap" href="#/tab/contacts/{{contact.id}}">
+        <h2>{{contact.displayName}}</h2>
+        <p>{{contact.phoneNumbers.length}} phone numbers</p>
+        <i class="icon ion-chevron-right icon-accessory"></i>
+      </ion-item>
+    </ion-list>
+  </ion-content>
+</ion-view>
